@@ -4,6 +4,7 @@ import java.util.*;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import java.io.*;
 import java.security.SecureRandom;
 import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.spec.IvParameterSpec;
@@ -11,6 +12,7 @@ import javax.crypto.spec.IvParameterSpec;
 public class Project{
 	
 private static final String UNI = "UTF-8";
+static String FILEPATH = "D:\\KeyShitFiles\\";
 
 public static void main(String ar[])
 {
@@ -38,10 +40,15 @@ public static void main(String ar[])
     	{
     	case 1: String s1=getString();
     			System.out.println("\nOriginal Text : "+s1);
-    			byte[] cipherText1 = encrypt(s1.getBytes(UNI),secKey,IV);					//Calling encryption method
-    			System.out.println("Encrpted text (Base64): "+bytesToBase(cipherText1));	//Displaying CipherText AFTER encoding to Base64
-    			sc.nextLine();																//'Eats' the dangling \n
-    			sc.nextLine();																//Trick to wait for a keypress before continuing
+    			byte[] cipherText1 = encrypt(s1.getBytes(UNI),secKey,IV);						//Calling encryption method
+    			byte[] totalCipherText = concatByteArrays(IV,cipherText1);						//Concat IV and user input to store together
+    			System.out.println("Encrpted text (Base64): "+bytesToBase(totalCipherText));	//Displaying combined CipherText AFTER encoding to Base64
+    			System.out.println("Enter desired file name");
+    			sc.nextLine();
+    			String filename=sc.nextLine();
+    			infoToFile(bytesToBase(totalCipherText),filename);
+    			sc.nextLine();																	//'Eats' the dangling \n
+    			sc.nextLine();																	//Trick to wait for a keypress before continuing
     			break;
     	case 2: String s2=getString();
     			System.out.println("\nEncrypted Text (Base64): "+s2);						
@@ -80,6 +87,15 @@ public static String baseToByte(byte[] temp)				//Method to decode readable Base
 	return decoded;
 }
 
+public static byte[] concatByteArrays(byte[] IV, byte[] cipherText)  throws IOException
+{
+	ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
+	outputStream.write(IV);
+	outputStream.write(cipherText);
+	byte c[] = outputStream.toByteArray( );
+	return c;
+}
+
 public static String getString()
 {
 	String st;
@@ -89,6 +105,36 @@ public static String getString()
 	return st;
 }
 
+public static void infoToFile(String cipherText, String filename)
+{	
+	try { 
+			File file = new File(FILEPATH+filename); 
+			FileWriter fileWriter = new FileWriter(file); 					// Initialize a pointer in file using OutputStream 
+			fileWriter.write(cipherText); 									// Starts writing the bytes in it
+			fileWriter.flush();												//Flushes the buffer 
+            fileWriter.close(); 											// Close the file 
+    } 
+	catch (Exception e) { 
+        System.out.println("Exception: " + e); 
+    } 
+}
+
+public static String infoFromFile(byte[] cipherText,String filename)
+{
+	try {  
+		File file = new File(FILEPATH+filename); 
+		BufferedReader br = new BufferedReader(new FileReader(file)); 
+		String st; 
+		while ((st = br.readLine()) != null) 
+			System.out.println(st); 
+		br.close();
+		return st;
+	} 
+	catch (Exception e) { 
+		System.out.println("Exception: " + e); 
+		return null;
+	}
+}
 
 public static byte[] encrypt(byte[] plaintext,SecretKey key,byte[] IV ) throws Exception
 {
