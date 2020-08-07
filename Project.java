@@ -8,6 +8,7 @@ import java.io.*;
 import java.security.SecureRandom;
 import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.spec.IvParameterSpec;
+import java.nio.file.*;
 
 public class Project{
 	
@@ -41,22 +42,45 @@ public static void main(String ar[])
     	case 1: String s1=getString();
     			System.out.println("\nOriginal Text : "+s1);
     			byte[] cipherText1 = encrypt(s1.getBytes(UNI),secKey,IV);						//Calling encryption method
-    			byte[] totalCipherText = concatByteArrays(IV,cipherText1);						//Concat IV and user input to store together
-    			System.out.println("Encrpted text (Base64): "+bytesToBase(totalCipherText));	//Displaying combined CipherText AFTER encoding to Base64
-    			System.out.println("Enter desired file name");
-    			sc.nextLine();
-    			String filename=sc.nextLine();
-    			infoToFile(bytesToBase(totalCipherText),filename);
-    			sc.nextLine();																	//'Eats' the dangling \n
+    			byte[] totalCipherText = concatByteArrays(IV,cipherText1);						//Concatenate IV and user input to store together
+    			System.out.println("Do you want to save encrypted data to a file? (y/n)");
+    			char e = sc.next().charAt(0);
+    			switch(e)
+    			{
+    			case 'y','Y': System.out.println("Enter desired file name (add .txt): ");
+    						  sc.nextLine();
+    						  String filename=sc.nextLine();
+    						  infoToFile(bytesToBase(totalCipherText),filename);
+    						  System.out.println("Data stored to a file. Location: "+FILEPATH);
+    						  break;
+    			case 'n','N': System.out.println("Encrpted text (Base64): "+bytesToBase(totalCipherText));		//Displaying combined CipherText AFTER encoding to Base64
+    						  break;
+    			default: System.out.println("Error, something went wrong :(");
+    			}
     			sc.nextLine();																	//Trick to wait for a keypress before continuing
     			break;
-    	case 2: String s2=getString();
-    			System.out.println("\nEncrypted Text (Base64): "+s2);						
-    			byte[] cipherText2 = Base64.getDecoder().decode(s2);						//Decoding Base64 to byte array
-    			String decryptedText = decrypt(cipherText2,secKey,IV);						//Calling decryption method 
-    	        System.out.println("Decrypted Text : "+decryptedText);
-    	        sc.nextLine();																//'Eats' the dangling \n
-    	        sc.nextLine();																//Trick to wait for a keypress before continuing
+    	case 2: System.out.println("1. Enter data directly\n2. Choose a file\n");
+				int d = sc.nextInt();
+				switch(d)
+				{
+				case 1: String s2=getString();
+    					System.out.println("\nEncrypted Text (Base64): "+s2);						
+    					byte[] cipherText2 = Base64.getDecoder().decode(s2);					//Decoding Base64 to byte array
+    					String decryptedText = decrypt(cipherText2,secKey,IV);					//Calling decryption method 
+    					System.out.println("Decrypted Text : "+decryptedText);
+    					sc.nextLine();
+    					break;
+				case 2: System.out.println("Enter the file name you want to decrpyt from (add .txt): ");
+						sc.nextLine();
+						String filename=sc.nextLine();
+						String raw = infoFromFile(filename);
+						byte[] rawByte = Base64.getDecoder().decode(raw);
+						byte[] IV1 = Arrays.copyOfRange(rawByte, 0, 16);  
+						cipherText2 = Arrays.copyOfRange(rawByte, 16, rawByte.length); 
+						decryptedText = decrypt(cipherText2,secKey,IV1);					//Calling decryption method 
+    	        		System.out.println("Decrypted Text : "+decryptedText);
+				}
+		        sc.nextLine();																	//Trick to wait for a keypress before continuing
     	        break;
     	case 3: break;		
     	}
@@ -81,7 +105,7 @@ public static String bytesToBase(byte[] temp)				//Method to encode unreadable b
 	return encoded;
 }
 
-public static String baseToByte(byte[] temp)				//Method to decode readable Base64 string to unreadable byte array 
+public static String baseToByte(String temp)				//Method to decode readable Base64 string to unreadable byte array 
 {
 	String decoded = new String(Base64.getDecoder().decode(temp));
 	return decoded;
@@ -92,7 +116,7 @@ public static byte[] concatByteArrays(byte[] IV, byte[] cipherText)  throws IOEx
 	ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
 	outputStream.write(IV);
 	outputStream.write(cipherText);
-	byte c[] = outputStream.toByteArray( );
+	byte c[] = outputStream.toByteArray();
 	return c;
 }
 
@@ -119,15 +143,12 @@ public static void infoToFile(String cipherText, String filename)
     } 
 }
 
-public static String infoFromFile(byte[] cipherText,String filename)
+public static String infoFromFile(String filename)
 {
 	try {  
-		File file = new File(FILEPATH+filename); 
-		BufferedReader br = new BufferedReader(new FileReader(file)); 
-		String st; 
-		while ((st = br.readLine()) != null) 
-			System.out.println(st); 
-		br.close();
+		Path path = Paths.get(FILEPATH+filename);
+		byte[] bytes = Files.readAllBytes(path);
+		String st = new String(bytes,UNI);
 		return st;
 	} 
 	catch (Exception e) { 
@@ -154,6 +175,6 @@ public static String decrypt (byte[] cipherText, SecretKey key,byte[] IV) throws
     IvParameterSpec ivSpec = new IvParameterSpec(IV);						//Create IvParameterSpec 
     cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec);						//Initialize Cipher to DECRYPT_MODE
     byte[] decryptedText = cipher.doFinal(cipherText);						//Perform Decryption
-    return new String(decryptedText);
+    return new String(decryptedText,UNI);
 }
 }
